@@ -5,20 +5,20 @@
     "faststart": true
   },
   "video": {
-    "codec": "h264_nvenc",
-    "preset": "lossless",
+    "codec": "hevc_amf",
+    "preset": "none",
     "pass": "1",
     "crf": "none",
     "bitrate": "auto",
     "minrate": "auto",
     "maxrate": "auto",
     "bufsize": "auto",
-    "gopsize": 60,
+    "gopsize": 120,
     "pixel_format": "yuv420p",
     "frame_rate": "auto",
     "speed": "auto",
     "tune": "none",
-    "profile": "high",
+    "profile": "main",
     "level": "none",
     "faststart": true,
     "size": "auto",
@@ -27,7 +27,7 @@
     "format": "auto",
     "aspect": "auto",
     "scaling": "auto",
-    "codec_options": ""
+    "codec_options": "usage=transcoding:quality=quality:rc=cqp:qp_i=20:qp_p=22:qp_b=24"
   },
   "audio": {
     "codec": "aac",

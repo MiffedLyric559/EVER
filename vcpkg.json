@@ -9,7 +9,30 @@
       "version>=": "3.1.8"
     },
     "polyhook2",
-    "nlohmann-json"
+    "nlohmann-json",
+    {
+      "name": "ffmpeg",
+      "default-features": false,
+      "features": [
+        "avcodec",
+        "avdevice",
+        "avfilter",
+        "avformat",
+        "swresample",
+        "swscale",
+        "gpl",
+        "x264",
+        "x265",
+        "nvcodec",
+        "amf",
+        "qsv",
+        "aom",
+        "vpx",
+        "opus",
+        "mp3lame",
+        "vorbis"
+      ]
+    }
   ],
   "builtin-baseline": "a42af01b72c28a8e1d7b48107b33e4f286a55ef6",
   "overrides": [

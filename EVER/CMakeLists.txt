@@ -12,43 +12,113 @@ endforeach()
 ################################################################################
 source_group("" FILES ${no_group_source_files})
 
+# Core files
+set(Core_Header_Files
+        "src/core/script.h")
+
+set(Core_Source_Files
+        "src/core/dllmain.cpp"
+        "src/core/script.cpp")
+
+# Video encoding files
+set(Video_Header_Files
+        "src/video/EncoderSession.h"
+        "src/video/OpenEXRExporter.h"
+        "src/video/VideoFrameTypes.h"
+        "src/video/FFmpegEncoder.h"
+        "src/video/FFmpegTypes.h")
+
+set(Video_Source_Files
+        "src/video/EncoderSession.cpp"
+        "src/video/OpenEXRExporter.cpp"
+        "src/video/VideoFrameTypes.cpp"
+        "src/video/FFmpegEncoder.cpp")
+
+# Hooking files
+set(Hooking_Header_Files
+        "src/hooking/HookUtility.h"
+        "src/hooking/MemberFunctionHook.h"
+        "src/hooking/ImportExportHook.h"
+        "src/hooking/X64Detour.h"
+        "src/hooking/PatternScanner.h"
+        "src/hooking/ScanPatterns.h"
+        "src/hooking/HookDefinitions.h")
+
+set(Hooking_Source_Files
+        "src/hooking/PatternScanner.cpp")
+
+# Config files
+set(Config_Header_Files
+        "src/config/ConfigConstants.h"
+        "src/config/Manager.h")
+
+set(Config_Source_Files
+        "src/config/Manager.cpp")
+
+# Utility files
+set(Utils_Header_Files
+        "src/utils/ConfigValueParser.h"
+        "src/utils/IniConfigReader.h"
+        "src/utils/JsonPresetReader.h"
+        "src/utils/logger.h"
+        "src/utils/SafeQueue.h"
+        "src/utils/util.h"
+        "src/utils/CrashHandler.h")
+
+set(Utils_Source_Files
+        "src/utils/logger.cpp"
+        "src/utils/util.cpp"
+        "src/utils/CrashHandler.cpp")
+
+# Rendering files
+set(Rendering_Header_Files
+        "src/rendering/MFUtility.h")
+
+# Include files
+set(Include_Files
+        "include/stdafx.h")
+
+# Resource files
+set(Resource_Files
+        "resources/resource.rc")
+
+# Combine all header files
 set(Header_Files
-        "config.h"
-        "encoder.h"
-        "logger.h"
-        "MFUtility.h"
-        "SafeQueue.h"
-        "script.h"
-        "stdafx.h"
-        "targetver.h"
-        "util.h"
-        "yara-helper.h"
-        "yara-patterns.h"
-        "hooks.h"
-        "hookdefs.h")
+        ${Core_Header_Files}
+        ${Video_Header_Files}
+        ${Hooking_Header_Files}
+        ${Config_Header_Files}
+        ${Utils_Header_Files}
+        ${Rendering_Header_Files}
+        ${Include_Files})
 
+# Combine all source files
 set(Source_Files
-        "config.cpp"
-        "dllmain.cpp"
-        "encoder.cpp"
-        "logger.cpp"
-        "script.cpp"
-        "yara-helper.cpp"
-        "resource.rc"
-        "util.cpp"
-        )
+        ${Core_Source_Files}
+        ${Video_Source_Files}
+        ${Hooking_Source_Files}
+        ${Config_Source_Files}
+        ${Utils_Source_Files}
+        ${Resource_Files})
 
-set(VK_Source_Files
-        "../voukoder/VoukoderTypeLib_i.c")
-
-source_group("Header Files" FILES ${Header_Files})
-source_group("Source Files" FILES ${Source_Files} ${VK_Source_Files})
+source_group("Core\\Header Files" FILES ${Core_Header_Files})
+source_group("Core\\Source Files" FILES ${Core_Source_Files})
+source_group("Video\\Header Files" FILES ${Video_Header_Files})
+source_group("Video\\Source Files" FILES ${Video_Source_Files})
+source_group("Hooking\\Header Files" FILES ${Hooking_Header_Files})
+source_group("Hooking\\Source Files" FILES ${Hooking_Source_Files})
+source_group("Config\\Header Files" FILES ${Config_Header_Files})
+source_group("Config\\Source Files" FILES ${Config_Source_Files})
+source_group("Utils\\Header Files" FILES ${Utils_Header_Files})
+source_group("Utils\\Source Files" FILES ${Utils_Source_Files})
+source_group("Rendering\\Header Files" FILES ${Rendering_Header_Files})
+source_group("Include Files" FILES ${Include_Files})
+source_group("Resource Files" FILES ${Resource_Files})
 
 set(ALL_FILES
         ${no_group_source_files}
         ${Header_Files}
         ${Source_Files}
-        ${VK_Source_Files}
         )
 ################################################################################
 # Target
@@ -159,6 +229,13 @@ target_link_options(${PROJECT_NAME} PRIVATE
         /DELAYLOAD:OpenEXR-3_1.dll;
         /DEBUG:FULL
         >
+        /DELAYLOAD:avcodec-60.dll;
+        /DELAYLOAD:avdevice-60.dll;
+        /DELAYLOAD:avfilter-9.dll;
+        /DELAYLOAD:avformat-60.dll;
+        /DELAYLOAD:avutil-58.dll;
+        /DELAYLOAD:swresample-4.dll;
+        /DELAYLOAD:swscale-7.dll;
         /DELAYLOAD:PolyHook_2.dll;
         /SUBSYSTEM:WINDOWS
         )
@@ -181,18 +258,40 @@ add_custom_command_if(
         COMMAND $<CONFIG:Debug> xcopy /y /E "$<SHELL_PATH:${CMAKE_CURRENT_SOURCE_DIR}/>deploy\\*" "$<SHELL_PATH:${OUTPUT_DIRECTORY}>"
         COMMAND $<CONFIG:Debug> if not exist "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls" mkdir "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
         COMMAND $<CONFIG:Debug> move /Y "$<SHELL_PATH:${OUTPUT_DIRECTORY}>\\*.dll" "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
-        COMMAND $<CONFIG:MinSizeRel> del /F /Q "$<SHELL_PATH:${OUTPUT_DIRECTORY}>EVER"
+        COMMAND $<CONFIG:MinSizeRel> del /F /Q "$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER>"
         COMMAND $<CONFIG:MinSizeRel> xcopy /y /E "$<SHELL_PATH:${CMAKE_CURRENT_SOURCE_DIR}/>deploy\\*" "$<SHELL_PATH:${OUTPUT_DIRECTORY}>"
-        COMMAND $<CONFIG:Release> del /F /Q "$<SHELL_PATH:${OUTPUT_DIRECTORY}>EVER"
+        COMMAND $<CONFIG:Release> del /F /Q "$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER>"
         COMMAND $<CONFIG:Release> xcopy /y /E "$<SHELL_PATH:${CMAKE_CURRENT_SOURCE_DIR}/>deploy\\*" "$<SHELL_PATH:${OUTPUT_DIRECTORY}>"
         COMMAND $<CONFIG:Release> if not exist "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls" mkdir "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
         COMMAND $<CONFIG:Release> move /Y "$<SHELL_PATH:${OUTPUT_DIRECTORY}>\\*.dll" "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
         COMMAND $<CONFIG:RelWithDebInfo> xcopy /y /E "$<SHELL_PATH:${CMAKE_CURRENT_SOURCE_DIR}/>deploy\\*" "$<SHELL_PATH:${OUTPUT_DIRECTORY}>"
+        COMMAND $<CONFIG:RelWithDebInfo> if not exist "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls" mkdir "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
+        COMMAND $<CONFIG:RelWithDebInfo> move /Y "$<SHELL_PATH:${OUTPUT_DIRECTORY}>\\*.dll" "$<SHELL_PATH:${OUTPUT_DIRECTORY}/>EVER\\dlls"
+)
+
+add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>"
+        COMMAND $<$<CONFIG:Debug>:xcopy> $<$<CONFIG:Debug>:/y> $<$<CONFIG:Debug>:"$<SHELL_PATH:${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/bin>\\*.dll"> $<$<CONFIG:Debug>:"$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>">
+        COMMAND $<$<NOT:$<CONFIG:Debug>>:xcopy> $<$<NOT:$<CONFIG:Debug>>:/y> $<$<NOT:$<CONFIG:Debug>>:"$<SHELL_PATH:${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/bin>\\*.dll"> $<$<NOT:$<CONFIG:Debug>>:"$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>">
+        COMMENT "Copy FFmpeg and codec runtime DLLs"
 )
 
 ################################################################################
 # Dependencies
 ################################################################################
+
+# Add project include directories
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/video"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/hooking"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/utils"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/rendering"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
 # Shaders
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/shaders")
@@ -203,6 +302,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 
 # ScriptHookV
 find_library(SCRIPT_HOOK_V_LIBRARY ScriptHookV REQUIRED HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../ScriptHookV/lib")
+target_include_directories(${PROJECT_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../ScriptHookV"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../ScriptHookV/inc")
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SCRIPT_HOOK_V_LIBRARY})
 
 # inih
@@ -221,12 +323,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE PolyHook_2::PolyHook_2)
 find_package(OpenEXR CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenEXR::OpenEXR)
 
-# Voukoder
-find_path(VOUKODER_INCLUDE_DIR VoukoderTypeLib_h.h REQUIRED HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../voukoder")
-target_include_directories(${PROJECT_NAME} PRIVATE ${VOUKODER_INCLUDE_DIR})
+# FFmpeg via vcpkg FindFFMPEG (module)
+find_package(FFMPEG REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_INCLUDE_DIRS})
+target_link_directories(${PROJECT_NAME} PRIVATE ${FFMPEG_LIBRARY_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${FFMPEG_LIBRARIES})
 
 # D3D11
 target_link_libraries(${PROJECT_NAME} PRIVATE d3d11.lib)
+
+# DbgHelp and Psapi for crash handling
+target_link_libraries(${PROJECT_NAME} PRIVATE dbghelp.lib psapi.lib)
 
 # Media Foundation
 target_link_libraries(${PROJECT_NAME} PRIVATE mfreadwrite.lib mfplat.lib mfuuid.lib)
