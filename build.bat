@@ -165,7 +165,7 @@ echo Updated VSINSTALLDIR: %VSINSTALLDIR%
 set "VCPKG_VISUAL_STUDIO_PATH=%VSINSTALL%"
 set "VCPKG_PLATFORM_TOOLSET=v142"
 set "VCPKG_PLATFORM_TOOLSET_VERSION=14.29"
-vcpkg\vcpkg.exe install --triplet=x64-windows --vcpkg-root=vcpkg
+vcpkg\vcpkg.exe install --triplet=x64-windows-release --overlay-triplets=triplets --vcpkg-root=vcpkg
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: Failed to install vcpkg dependencies
     exit /b 1

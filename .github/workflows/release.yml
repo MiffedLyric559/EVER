@@ -26,6 +26,15 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - name: Cache vcpkg installed packages
+        uses: actions/cache@v4
+        with:
+          path: vcpkg_installed
+          key: vcpkg-x64-windows-release-${{ hashFiles('vcpkg.json') }}-${{ hashFiles('vcpkg/versions/baseline.json') }}
+          restore-keys: |
+            vcpkg-x64-windows-release-${{ hashFiles('vcpkg.json') }}-
+            vcpkg-x64-windows-release-
+
       - name: Unshallow vcpkg submodule
         shell: cmd
         run: git -C vcpkg fetch --unshallow
@@ -34,6 +43,7 @@ jobs:
         shell: cmd
         env:
           VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+          VCPKG_OVERLAY_TRIPLETS: triplets
         run: .\build.bat
 
       - name: Package release artifacts
