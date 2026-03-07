@@ -5,6 +5,7 @@
 #define PRESET_FILE_NAME "EVER\\preset.json"
 
 // Main section keys
+#define CFG_GENERAL_SECTION "GENERAL"
 #define CFG_AUTO_RELOAD_CONFIG "auto_reload_config"
 #define CFG_ENABLE_XVX "enable_mod"
 #define CFG_OUTPUT_DIR "output_folder"

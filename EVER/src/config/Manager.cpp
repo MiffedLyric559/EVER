@@ -40,10 +40,10 @@ namespace Config {
         IniConfigReader reader(ini_path);
         
         // Main section
-        is_mod_enabled = reader.readBool("", CFG_ENABLE_XVX, true);
-        auto_reload_config = reader.readBool("", CFG_AUTO_RELOAD_CONFIG, true);
-        output_dir = reader.getOutputDirectory("", CFG_OUTPUT_DIR);
-        log_level = reader.readLogLevel("", CFG_LOG_LEVEL, LL_ERR);
+        is_mod_enabled = reader.readBool(CFG_GENERAL_SECTION, CFG_ENABLE_XVX, true);
+        auto_reload_config = reader.readBool(CFG_GENERAL_SECTION, CFG_AUTO_RELOAD_CONFIG, true);
+        output_dir = reader.getOutputDirectory(CFG_GENERAL_SECTION, CFG_OUTPUT_DIR);
+        log_level = reader.readLogLevel(CFG_GENERAL_SECTION, CFG_LOG_LEVEL, LL_ERR);
 
         // Export section
         fps = reader.readFraction(CFG_EXPORT_SECTION, CFG_EXPORT_FPS, {30000, 1001});
