@@ -74,24 +74,22 @@ The project focuses on the following core objectives:
 
 Installing **EVER** is just as easy as before:
 
-**Required:** You need to have Voukoder installed in order for the plugin to work, you can grab the installation file from: [here](https://web.archive.org/web/20241216004346/https://github.com/Vouk/voukoder/releases/tag/13.4.1).
-
 #### For GTA V:
 
-1. Download the latest release from the [releases page](https://github.com/MiffedLyric559/gta5-extended-video-export-Community-Edition/releases)
+1. Download the latest release from the [releases page](https://github.com/MiffedLyric559/EVER/releases)
 2. Install [ScriptHookV](http://www.dev-c.com/gtav/scripthookv/)
 3. Install [Reshade](https://reshade.me/)
 4. Unzip the latest release and place the contents in your GTA V installation folder
-5. Start GTA V and either edit the `ExtendedVideoExport.ini` file located in the `EVE` folder in GTA V or press the `Home` button and navigate to `addons` to adjust settings.
+5. Start GTA V and either edit the `EVER.ini` file located in the `EVER` folder in GTA V or press the `Home` button and navigate to `addons` to adjust settings.
 
 #### For FiveM:
 
-1. Download the latest release from the [releases page](https://github.com/MiffedLyric559/gta5-extended-video-export-Community-Edition/releases)
+1. Download the latest release from the [releases page](https://github.com/MiffedLyric559/EVER/releases)
 2. Install [Reshade](https://reshade.me/)
 3. Press: `Windows + R` and type: `%localappdata%\FiveM` and press `Enter`.
 4. Navigate into the `FiveM Application` and go to the `plugins` folder.
 5. Unzip the latest release and place the contents into the `plugins` folder.
-6. Start FiveM and either edit the `ExtendedVideoExport.ini` file located in the `EVE` folder in FiveM or press the `Home` button and navigate to `addons` to adjust settings.
+6. Start FiveM and either edit the `EVER.ini` file located in the `EVER` folder in FiveM or press the `Home` button and navigate to `addons` to adjust settings.
 
 ---
 
@@ -101,7 +99,7 @@ Using **EVER** is very simple and similar to the original EVE mod.
 Inside the `.ini` file or in the `Home` menu of Reshade you can adjust various settings related to EVER.
 
 - `enable_mod`: Enable or disable EVER.
-- `auto_reload_config`: Automatically reloads the `ExtendedVideoExport.ini` whenever a new export is started.
+- `auto_reload_config`: Automatically reloads the `EVER.ini` whenever a new export is started.
 - `output_folder`: The folder where the exported videos will be saved (default location is in the Videos folder).
 - `log_level`: The level of logging that should be displayed in the console.
 - `fps`: The frame rate of the exported video.
@@ -119,12 +117,9 @@ Once the Rockstar Editor is done, the second pass will automatically start and y
 
 ## Known issues
 
-- There is no clear indication that 2 rendering passes will be done if the FPS & motion blur sampling is set to values that exceeds 60.
-- When a export is fully complete and the user tries to load another project, the game will crash.
 - FPS counters and other overlays will be included in the exported video.
 - No option to separate the audio from the video.
-- Native UI and game frames will flicker in the second pass but the finished video will be fine.
-- The game might crash if trying to export very long videos at the second pass completion.
+- Some users might experience crashes & mod incompatibility issues (Menyoo is known to cause issues).
 
 ---
 
@@ -141,8 +136,8 @@ Once the Rockstar Editor is done, the second pass will automatically start and y
 1. Clone the repository with submodules:
 
    ```bash
-   git clone --recursive https://github.com/MiffedLyric559/gta5-extended-video-export-Community-Edition.git
-   cd gta5-extended-video-export-Community-Edition
+   git clone --recursive https://github.com/MiffedLyric559/EVER.git
+   cd EVER
    ```
 
 2. Initialize and update submodules (if not cloned recursively):
@@ -153,9 +148,7 @@ Once the Rockstar Editor is done, the second pass will automatically start and y
 
 3. Download the ScriptHookV SDK from [here](http://www.dev-c.com/gtav/scripthookv/) and unzip into: `ScriptHookV` inside the main repository folder.
 
-4. Download the Voukoder from [here](https://web.archive.org/web/20241216004346/https://github.com/Vouk/voukoder) (Wayback Machine) and unzip the archive and copy the contents of the `Voukoder` into a folder named: `voukoder` inside the main repository folder.
-
-5. Run the build script:
+4. Run the build script:
    ```bash
    build.bat
    ```
