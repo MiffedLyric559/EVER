@@ -44,10 +44,6 @@ ipch/
 packages/
 /.idea
 
-# ScriptHookV
-/ScriptHookV
-!/ScriptHookV/HOWTO.TXT
-
 # cmake
 /out
 /voukoder
@@ -57,3 +53,5 @@ packages/
 /reshade
 /build
 /Builds
+
+!ScriptHookV/lib/*.lib
