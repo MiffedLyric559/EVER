@@ -1,0 +1,88 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour with Extended Video Export Revived
+title: "[Bug] "
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before you submit
+        Please change `log_level` to `debug` in your `EVER.ini`, reproduce the issue, then fill in the fields below and attach the log.
+
+  - type: dropdown
+    id: legacy_gta
+    attributes:
+      label: Are you using legacy GTA V?
+      description: Legacy means a non-enhanced version of GTA V.
+      options:
+        - "No – I am using the Enhanced version"
+        - "Yes – I am using a legacy version"
+    validations:
+      required: true
+
+  - type: input
+    id: scripthookv_version
+    attributes:
+      label: ScriptHookV version
+      description: Found in `ScriptHookV.log` or the ScriptHookV website.
+      placeholder: "e.g. 1.0.3179.0"
+    validations:
+      required: true
+
+  - type: input
+    id: reshade_version
+    attributes:
+      label: ReShade version
+      description: Shown in the ReShade overlay title bar when you open it in-game.
+      placeholder: "e.g. 6.3.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: other_mods
+    attributes:
+      label: Other mods / graphics mods
+      description: List any other mods you have installed, especially graphics and ASI mods.
+      placeholder: "e.g. VisualV, NaturalVision Evolved, LSPDFR, Menyoo ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the issue
+      description: What happened? What did you do exactly when the issue occurred? Include reproduction steps if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ever_log
+    attributes:
+      label: EVER.log (debug level)
+      description: >
+        Set `log_level=debug` in `EVER.ini`, reproduce the issue, then paste the **full** contents of
+        `EVER.log` here. The log is located next to `EVER.ini` in your ``EVER`` folder.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: crash_report
+    attributes:
+      label: Crash report (if applicable)
+      description: >
+        If EVER crashed, check the `crashes/` folder inside the ``EVER`` folder. Paste the full contents of the
+        `.txt` crash file here. Attach the `.dmp` file as a `.zip` attachment — GitHub does not accept
+        `.dmp` files directly.
+      render: text
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have set `log_level=debug` in `EVER.ini` and reproduced the issue with debug logging enabled.
+          required: true
+        - label: I have included the full `EVER.log` above.
+          required: true

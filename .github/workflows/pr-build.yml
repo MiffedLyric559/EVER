@@ -1,0 +1,43 @@
+name: PR Build Check
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build (Release)
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up vcpkg binary cache credentials
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Bootstrap vcpkg
+        shell: cmd
+        run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Configure CMake
+        shell: cmd
+        env:
+          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+        run: >
+          cmake -B build
+          -A x64
+          -T v142
+          -G "Visual Studio 17 2022"
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+
+      - name: Build
+        shell: cmd
+        run: cmake --build build --config Release
