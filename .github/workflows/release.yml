@@ -33,7 +33,7 @@ jobs:
       - name: Download ScriptHookV SDK
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://ntscorp.ru/dev-c/ScriptHookV_SDK_1.0.617.1a.zip" -OutFile "ScriptHookV_SDK.zip"
+          Invoke-WebRequest -Uri "https://ntscorp.ru/dev-c/ScriptHookV_SDK_1.0.617.1a.zip" -OutFile "ScriptHookV_SDK.zip" -AllowInsecureRedirect
           Expand-Archive -Path "ScriptHookV_SDK.zip" -DestinationPath "ScriptHookV" -Force
           Remove-Item "ScriptHookV_SDK.zip"
 
