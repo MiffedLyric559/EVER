@@ -292,8 +292,8 @@ add_custom_command(
         TARGET ${PROJECT_NAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>"
-        COMMAND $<$<CONFIG:Debug>:xcopy> $<$<CONFIG:Debug>:/y> $<$<CONFIG:Debug>:"$<SHELL_PATH:${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/debug/bin>\\*.dll"> $<$<CONFIG:Debug>:"$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>">
-        COMMAND $<$<NOT:$<CONFIG:Debug>>:xcopy> $<$<NOT:$<CONFIG:Debug>>:/y> $<$<NOT:$<CONFIG:Debug>>:"$<SHELL_PATH:${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows/bin>\\*.dll"> $<$<NOT:$<CONFIG:Debug>>:"$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>">
+        # Copy runtime DLLs from the active vcpkg triplet output (e.g. x64-windows-release).
+        COMMAND xcopy /y "$<SHELL_PATH:${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/bin>\\*.dll" "$<SHELL_PATH:${OUTPUT_DIRECTORY}/EVER/dlls>"
         COMMENT "Copy FFmpeg and codec runtime DLLs"
 )
 
