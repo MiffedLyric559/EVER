@@ -70,6 +70,10 @@ namespace ever {
                 "40 53 48 83 EC 20 33 DB 83 3D ?? ?? ?? ?? 02 74 ?? "
                 "8B 0D ?? ?? ?? ?? 8B C1 C1 E8 05 A8 01 75 ??";
 
+            // Puddle ripple simulation (Ripples::Update(float rainyness))
+            const std::string puddlesRipplesUpdate =
+                "48 83 EC 60 8A 05 ?? ?? ?? ?? 0F 29 74 24 50 0F 29 7C 24 40 0A 05 ?? ?? ?? ?? 48 8B D9 0A 05 ?? ?? ?? ?? 0F 28 F9 0A 05 ?? ?? ?? ?? 0F 85";
+
             // Set user confirmation screen
             const std::string setUserConfirmationScreen =
                 "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 "

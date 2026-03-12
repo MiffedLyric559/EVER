@@ -16,6 +16,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <dxgi1_3.h>
 #include <cwctype>
@@ -243,6 +244,20 @@ namespace {
     uint64_t g_isPendingBakeStartAddress = 0;
     uint32_t* g_isPendingBakeStartStatePtr = nullptr;
 
+    struct TemporalSyncState {
+        double ripplesAccumulatorSec = 0.0;
+        uint64_t ripplesCalls = 0;
+        uint64_t ripplesSkipped = 0;
+        bool wasExportActive = false;
+    };
+
+    std::mutex g_temporalSyncMutex;
+    TemporalSyncState g_temporalSyncState;
+    std::atomic_bool g_loggedRipplesExportHit = false;
+
+    constexpr double kTemporalSyncTargetStepSec = 1.0 / 30.0;
+    constexpr double kTemporalSyncMaxAccumulatorSec = 0.25;
+
     bool bindExportSwapChainIfAvailableLocked() {
         if (!exportContext) {
             return false;
@@ -445,6 +460,102 @@ namespace {
         return stream.str();
     }
 
+    bool memoryStartsWith(const uint64_t address, std::initializer_list<uint8_t> expectedPrefix) {
+        if (address == 0 || expectedPrefix.size() == 0) {
+            return false;
+        }
+
+        std::vector<uint8_t> buffer(expectedPrefix.size(), 0);
+        SIZE_T bytesRead = 0;
+        if (!ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<LPCVOID>(address),
+                               buffer.data(), buffer.size(), &bytesRead)) {
+            return false;
+        }
+
+        if (bytesRead < expectedPrefix.size()) {
+            return false;
+        }
+
+        size_t idx = 0;
+        for (const uint8_t value : expectedPrefix) {
+            if (buffer[idx] != value) {
+                return false;
+            }
+            ++idx;
+        }
+
+        return true;
+    }
+
+    uint64_t findNearestBackwardMatch(
+        const uint64_t candidateAddress,
+        const size_t maxBacktrack,
+        std::initializer_list<uint8_t> signature) {
+        if (candidateAddress == 0 || signature.size() == 0) {
+            return 0;
+        }
+
+        for (size_t back = 0; back <= maxBacktrack; ++back) {
+            const uint64_t probe = candidateAddress - back;
+            if (memoryStartsWith(probe, signature)) {
+                return probe;
+            }
+
+            if (probe == 0) {
+                break;
+            }
+        }
+
+        return 0;
+    }
+
+    // TODO: This can most likely be imporoved or have a more stable pattern.
+    uint64_t resolvePuddlesRipplesUpdateFunction(uint64_t candidateAddress) {
+        if (candidateAddress == 0) {
+            return 0;
+        }
+
+        if (memoryStartsWith(candidateAddress, {0x53, 0x48, 0x83, 0xEC, 0x60})) {
+            return candidateAddress;
+        }
+
+        if (memoryStartsWith(candidateAddress, {0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05}) &&
+            candidateAddress > 0 &&
+            memoryStartsWith(candidateAddress - 1, {0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05})) {
+            return candidateAddress - 1;
+        }
+
+        if (memoryStartsWith(candidateAddress, {0x40, 0x53, 0x48, 0x83, 0xEC, 0x60})) {
+            return candidateAddress;
+        }
+
+        if (const uint64_t fixed = findNearestBackwardMatch(
+                candidateAddress,
+                0x200,
+                {0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05});
+            fixed != 0) {
+            return fixed;
+        }
+
+        if (const uint64_t fixed = findNearestBackwardMatch(
+                candidateAddress,
+                0x200,
+                {0x40, 0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05});
+            fixed != 0) {
+            return fixed;
+        }
+
+        if (const uint64_t fixed = findNearestBackwardMatch(
+                candidateAddress,
+                0x200,
+                {0x48, 0x40, 0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05});
+            fixed != 0) {
+            return fixed;
+        }
+
+        return candidateAddress;
+    }
+
     void logResolvedHookTarget(const char* label, const uint64_t address, const size_t previewBytes = 32) {
         if (address == 0) {
             LOG(LL_WRN, label, " address was not resolved");
@@ -520,6 +631,56 @@ namespace {
             LOG(LL_NFO, "Forced ms_bWantDelayedClose=false during dual-pass transition. reason=", reason,
                 " state=", dualPassContext ? dualPassStateName(dualPassContext->state) : "NO_CONTEXT");
         }
+    }
+
+    double getCurrentExportRenderStepSeconds() {
+        const auto fps = Config::Manager::fps;
+        const float sampleCount = static_cast<float>(Config::Manager::motion_blur_samples) + 1.0f;
+        const float denominator = static_cast<float>(fps.first) * sampleCount;
+
+        if (denominator <= 0.0f) {
+            return kTemporalSyncTargetStepSec;
+        }
+
+        const float milliseconds = 1000.0f * static_cast<float>(fps.second) / denominator;
+        return std::max(0.0001, static_cast<double>(milliseconds) / 1000.0);
+    }
+
+    bool shouldExecuteTemporalTick(double& accumulatorSec, const double deltaSec) {
+        accumulatorSec = std::min(accumulatorSec + deltaSec, kTemporalSyncMaxAccumulatorSec);
+        if (accumulatorSec + 1e-9 < kTemporalSyncTargetStepSec) {
+            return false;
+        }
+
+        accumulatorSec = std::fmod(accumulatorSec, kTemporalSyncTargetStepSec);
+        return true;
+    }
+
+    void resetTemporalSyncStateLocked() {
+        g_temporalSyncState.ripplesAccumulatorSec = 0.0;
+        g_temporalSyncState.ripplesCalls = 0;
+        g_temporalSyncState.ripplesSkipped = 0;
+    }
+
+    void updateTemporalSyncExportTransitionLocked(const bool exportActive) {
+        if (g_temporalSyncState.wasExportActive == exportActive) {
+            return;
+        }
+
+        g_temporalSyncState.wasExportActive = exportActive;
+        resetTemporalSyncStateLocked();
+        LOG(LL_NFO, "Temporal sync state transition: exportActive=", exportActive);
+    }
+
+    void logTemporalSyncCounters(const char* label, const uint64_t calls, const uint64_t skipped, const double stepSec) {
+        if (calls == 0 || (calls % 240) != 0) {
+            return;
+        }
+
+        LOG(LL_DBG, "Temporal sync ", label,
+            " calls=", calls,
+            " skipped=", skipped,
+            " stepMs=", static_cast<float>(stepSec * 1000.0));
     }
 
     void resolveWantDelayedCloseAddress(const uint64_t setUserConfirmationAddress) {
@@ -1404,6 +1565,7 @@ void ever::initialize() {
         uint64_t pSetUserConfirmationScreen = NULL;
         uint64_t pHasVideoRenderErrored = NULL;
         uint64_t pShouldShowLoadingScreen = NULL;
+        uint64_t pPuddlesRipplesUpdate = NULL;
         
         patternScanner->addPattern("get_render_time_base_function", 
                                     ever::hooking::patterns::getRenderTimeBase, 
@@ -1438,7 +1600,22 @@ void ever::initialize() {
         patternScanner->addPattern("should_show_loading_screen",
                 ever::hooking::patterns::shouldShowLoadingScreen,
                 &pShouldShowLoadingScreen);
+        patternScanner->addPattern("puddles_ripples_update",
+                ever::hooking::patterns::puddlesRipplesUpdate,
+                &pPuddlesRipplesUpdate);
+
         patternScanner->performScan();
+
+        if (pPuddlesRipplesUpdate) {
+            const uint64_t resolvedPuddlesRipplesUpdate =
+                resolvePuddlesRipplesUpdateFunction(pPuddlesRipplesUpdate);
+            if (resolvedPuddlesRipplesUpdate != pPuddlesRipplesUpdate) {
+                LOG(LL_DBG, "PuddlesRipplesUpdate anchor adjusted from ",
+                    Logger::hex(pPuddlesRipplesUpdate, 16), " to ",
+                    Logger::hex(resolvedPuddlesRipplesUpdate, 16));
+            }
+            pPuddlesRipplesUpdate = resolvedPuddlesRipplesUpdate;
+        }
 
         logResolvedHookTarget("GetRenderTimeBase", pGetRenderTimeBase);
         logResolvedHookTarget("CreateTexture", pCreateTexture);
@@ -1451,6 +1628,7 @@ void ever::initialize() {
         logResolvedHookTarget("SetUserConfirmationScreen", pSetUserConfirmationScreen);
         logResolvedHookTarget("HasVideoRenderErrored", pHasVideoRenderErrored);
         logResolvedHookTarget("ShouldShowLoadingScreen", pShouldShowLoadingScreen);
+        logResolvedHookTarget("PuddlesRipplesUpdate", pPuddlesRipplesUpdate);
 
         try {
             if (pGetRenderTimeBase) {
@@ -1602,6 +1780,29 @@ void ever::initialize() {
                     reinterpret_cast<void*>(GameHooks::ShouldShowLoadingScreen::OriginalFunc));
             } else {
                 LOG(LL_WRN, "Could not find ShouldShowLoadingScreen function.");
+            }
+
+            if (pPuddlesRipplesUpdate) {
+                const bool oldEntry = memoryStartsWith(
+                    pPuddlesRipplesUpdate,
+                    {0x40, 0x53, 0x48, 0x83, 0xEC, 0x60, 0x48, 0x8B, 0xD9});
+                const bool b3751Entry = memoryStartsWith(
+                    pPuddlesRipplesUpdate,
+                    {0x48, 0x40, 0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05});
+                const bool b3751AltEntry = memoryStartsWith(
+                    pPuddlesRipplesUpdate,
+                    {0x53, 0x48, 0x83, 0xEC, 0x60, 0x8A, 0x05});
+
+                if (!oldEntry && !b3751Entry && !b3751AltEntry) {
+                    LOG(LL_WRN, "Skipping PuddlesRipplesUpdate hook: resolved address is not function entry");
+                } else {
+                    PERFORM_X64_HOOK_WITH_SCHEME_REQUIRED(PuddlesRipplesUpdate, pPuddlesRipplesUpdate,
+                                                            PLH::x64Detour::detour_scheme_t::INPLACE);
+                    LOG(LL_NFO, "PuddlesRipplesUpdate hook installed. trampoline:",
+                        reinterpret_cast<void*>(GameHooks::PuddlesRipplesUpdate::OriginalFunc));
+                }
+            } else {
+                LOG(LL_WRN, "Could not find PuddlesRipplesUpdate function.");
             }
             
             if (Config::Manager::disable_watermark) {
@@ -2784,6 +2985,55 @@ bool GameHooks::ShouldShowLoadingScreen::Implementation() {
 
     POST();
     return originalResult;
+}
+
+void GameHooks::PuddlesRipplesUpdate::Implementation(void* ripples, float rainyness) {
+    PRE();
+
+    const bool exportActive = ever::isExportActive();
+    if (!exportActive) {
+        {
+            std::lock_guard<std::mutex> lock(g_temporalSyncMutex);
+            updateTemporalSyncExportTransitionLocked(false);
+        }
+        OriginalFunc(ripples, rainyness);
+        POST();
+        return;
+    }
+
+    if (!g_loggedRipplesExportHit.exchange(true)) {
+        LOG(LL_NFO, "PuddlesRipplesUpdate hit during export. ripples=",
+            Logger::hex(reinterpret_cast<uint64_t>(ripples), 16),
+            " rainyness=", rainyness);
+    }
+
+    const double stepSec = getCurrentExportRenderStepSeconds();
+    bool shouldRun = true;
+    uint64_t calls = 0;
+    uint64_t skipped = 0;
+
+    {
+        std::lock_guard<std::mutex> lock(g_temporalSyncMutex);
+        updateTemporalSyncExportTransitionLocked(true);
+
+        ++g_temporalSyncState.ripplesCalls;
+        shouldRun = shouldExecuteTemporalTick(g_temporalSyncState.ripplesAccumulatorSec, stepSec);
+        if (!shouldRun) {
+            ++g_temporalSyncState.ripplesSkipped;
+        }
+
+        calls = g_temporalSyncState.ripplesCalls;
+        skipped = g_temporalSyncState.ripplesSkipped;
+        logTemporalSyncCounters("ripples", calls, skipped, stepSec);
+    }
+
+    if (!shouldRun) {
+        POST();
+        return;
+    }
+
+    OriginalFunc(ripples, rainyness);
+    POST();
 }
 
 float GameHooks::GetRenderTimeBase::Implementation(int64_t choice) {
